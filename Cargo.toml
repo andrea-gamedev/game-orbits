@@ -10,7 +10,7 @@ nalgebra = "*"
 num-traits = "*"
 
 [dev-dependencies]
-bevy = {version="0.15.1", features=["jpeg"]}
+bevy = {version="0.15.2"}
 approx = "*"
 
 [features]

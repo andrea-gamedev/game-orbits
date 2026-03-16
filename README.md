@@ -39,7 +39,7 @@ write a wrapper library around rust code or compiled artifacts.
 ### Examples
 
 This library includes a few examples that showcase the library's use in the Bevy game engine. For
-details on the individual examples and how to run them yourself, see the [examples README file](./examples/README.md).
+details on the individual examples and how to run them, see the [examples README file](./examples/README.md).
 
 ### Tests
 
