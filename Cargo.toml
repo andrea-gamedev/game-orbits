@@ -1,11 +1,11 @@
 [package]
 name = "game-orbits"
-version = "0.0.0"
+version = "0.0.1"
 edition = "2021"
 
 [dependencies]
-bevy = {version="0.15.2", optional=true, default-features=false}
-godot = {version="0.2.3", optional=true}
+bevy = {version="0.18.1", optional=true, default-features=false}
+godot = {version="0.4.5", optional=true}
 nalgebra = "*"
 num-traits = "*"
 
@@ -16,7 +16,7 @@ approx = "*"
 default = []
 bevy = ["dep:bevy"]
 godot = ["dep:godot"]
-example = ["bevy", "bevy/default", "bevy/jpeg"] # 418 dependencies
+example = ["bevy", "bevy/default", "bevy/jpeg"] # 402 dependencies
 
 [lib]
 crate-type = ["lib", "cdylib"]

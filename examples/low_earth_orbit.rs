@@ -212,7 +212,7 @@ mod low_earth_orbit {
 		mut text_nodes: Query<&mut Text>, orbits: Query<&Orbit>, labels: Res<TextElements>,
 	){
 		let body = Body::new_earth();
-		let orbit = orbits.get_single().unwrap();
+		let orbit = orbits.single().unwrap();
 		let mut label = text_nodes.get_mut(labels.time).unwrap();
 		label.0 = format!("t: {:.1} s", orbit.time);
 		label = text_nodes.get_mut(labels.semimajor_axis).unwrap();
@@ -241,7 +241,7 @@ fn main() {
 	#[cfg(feature="example")]
     {
     	App::new()
-            .add_plugins((DefaultPlugins, WireframePlugin))
+            .add_plugins((DefaultPlugins, WireframePlugin::default()))
             .add_systems(Startup, (setup_earth, setup_camera, setup_sun, setup_ui))
             .add_systems(Update, (
     			process_orbit, process_framerate_counter,

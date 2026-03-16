@@ -227,7 +227,7 @@ mod solar_system {
 		camera_parents: Query<&CameraParent>,
 		handles: Res<UiElements>,
 	){
-		let camera_parent = camera_parents.single();
+		let camera_parent = camera_parents.single().unwrap();
 		let mut text = elements.get_mut(handles.control_view_orbits).unwrap();
 		text.0 = format!("[1] Change orbit view mode: {}", camera_parent.view_orbit.to_str());
 		text = elements.get_mut(handles.control_view_soi).unwrap();
@@ -257,7 +257,7 @@ mod solar_system {
 		handles: Res<UiElements>,
 	) {
 		let empty_string = String::from(" ");
-		let camera_parent = camera_parents.single();
+		let camera_parent = camera_parents.single().unwrap();
 		let entry = database.get_entry(&camera_parent.centered_body);
 		// focused planet text
 		let mut text = elements.get_mut(handles.focused_planet_name).unwrap();
@@ -346,7 +346,7 @@ mod solar_system {
 		mut camera_parents: Query<&mut CameraParent>,
 	){
 		let delta = time.delta_secs();
-		let mut camera_parent = camera_parents.single_mut();
+		let mut camera_parent = camera_parents.single_mut().unwrap();
 		// handle rotation inputs
 		if keyboard.pressed(CAM_ROTATE_RIGHT) {
 			camera_parent.yaw += CAM_ROTATE_SPEED * delta;
@@ -376,7 +376,7 @@ mod solar_system {
 		keyboard: Res<ButtonInput<KeyCode>>,
 		database: Res<Database>,
 	) {
-		let mut camera_parent = camera_parents.single_mut();
+		let mut camera_parent = camera_parents.single_mut().unwrap();
 		if keyboard.just_pressed(CAM_FOCUS_SATELLITES) {
 			let children = database.get_satellites(&camera_parent.centered_body);
 			if !children.is_empty() {
@@ -425,7 +425,7 @@ mod solar_system {
 		mut camera_parents: Query<&mut CameraParent>,
 		keyboard: Res<ButtonInput<KeyCode>>,
 	){
-		let mut camera_parent = camera_parents.single_mut();
+		let mut camera_parent = camera_parents.single_mut().unwrap();
 		if keyboard.just_pressed(TOGGLE_VIEW_APSIS) {
 			camera_parent.view_apsis = !camera_parent.view_apsis;
 		}
@@ -444,8 +444,8 @@ mod solar_system {
 		mut camera_parents: Query<(&mut Transform, &CameraParent), Without<Camera3d>>,
 		mut cameras: Query<&mut Transform, (With<Camera3d>, Without<CameraParent>)>,
 	){
-		let (mut camera_parent_transform, camera_parent) = camera_parents.single_mut();
-		let mut camera_transform = cameras.single_mut();
+		let (mut camera_parent_transform, camera_parent) = camera_parents.single_mut().unwrap();
+		let mut camera_transform = cameras.single_mut().unwrap();
 		let camera_rotation = Quat::from_axis_angle(Vec3::X, camera_parent.pitch);
 		let camera_direction = camera_rotation * -Vec3::Z;
 		let center_position = Vec3::ZERO;
@@ -461,7 +461,7 @@ mod solar_system {
 		mut gizmos: Gizmos, camera_parents: Query<&CameraParent>,
 		db: Res<Database>, system_time: Res<SystemTime>,
 	) {
-		let camera_parent = camera_parents.single();
+		let camera_parent = camera_parents.single().unwrap();
 		let origin_body = camera_parent.centered_body;
 		let step = TAU / (ORBIT_SEGMENTS-1) as f32;
 		for (handle, entry) in db.iter() {
@@ -509,7 +509,7 @@ mod solar_system {
 		db: Res<Database>, time: Res<SystemTime>,
 		camera_parents: Query<&CameraParent>,
 	) {
-		let camera_parent = camera_parents.single();
+		let camera_parent = camera_parents.single().unwrap();
 		let centered_body = camera_parent.centered_body;
 		for (handle, entry) in db.iter() {
 
