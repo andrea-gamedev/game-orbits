@@ -20,7 +20,7 @@ section, especially if it has to do with making this more rusty, more modular, o
 library to your needs. Just know that if you decide to rely on this code in its current state for a
 project, you're probably in for a huge headache.
 
-### Capabilities
+## Capabilities
 
 This library currently contains the means to store a database of orbital bodies with their orbits
 defined by Keplerian elements, with the database having additional functionality to calculate the
@@ -36,29 +36,20 @@ in order to use this for a personal project of mine in the Godot engine, but it
 should be theoretically possible to use this in any engine that allows you to
 write a wrapper library around rust code or compiled artifacts.
 
-### Examples
+## Examples
 
 This library includes a few examples that showcase the library's use in the Bevy game engine. For
 details on the individual examples and how to run them, see the [examples README file](./examples/README.md).
 
-### Tests
+## Feature flags
 
-Due to a limitation of `cargo` combined with the fact that I use the Bevy engine to render my
-examples, unit tests require compiling bevy to run. This won't include Bevy or require Bevy for any
-projects that use this library, but it does mean the first time compiling unit tests will take a
-significant amount of time as it compiles Bevy along with the tests. Building the library itself or
-its documentation should still be quite fast sinze they don't make any use of Bevy. Use the
-following to run tests:
+Feature flags are included to provide wrappers for the `PlanetDatabase` struct in either the Bevy or Godot game engines. One additional flag is available, `example`, that is used for running examples (see the [examples README for more details](./examples/README.md)). The examples run in the Bevy engine, so the `example` flag enables the bevy flag as well as the necessary features in bevy to render the examples.
 
-```
-cargo test --features bevy
-```
-
-### Feature flags
-
-Currently, the library contains some wrapper structs for the Bevy and Godot engines that can be
-included by using the `bevy` or `godot` feature flags respectively. To see what these flags add, see
-the appropriate `feat_*.rs` file.
+Flag      | Description
+----------|------------
+`bevy`    | Adds the `BevyPlanetDatabase` struct, which can be added to the ECS as a resource, and wraps the `PlanetDatabase` struct, allowing you to add planets and query their positions through the Bevy ECS. Does not add anything from bevy except the bare minimum to make `BevyPlanetDatabase` a valid Bevy ECS resource.
+`godot`   | Adds the `GodotPlanetDatabase` struct, which can be included in a GDExtension and appears in the godot engine as a class/node that can be added to the scene tree. Wraps the `PlanetDatabase` struct, allowing you to add planets and query their positions from within the Godot engine
+`example` | Enables the `bevy` feature, as well as any features in the Bevy engine needed to run the examples for this crate. Contrasts to the `bevy` feature alone, which only adds the bare minimum from Bevy in order for `BevyPlanetDatabase` to be a valid resource to keep this library as lightweight as possible when used.
 
 ## References
 
