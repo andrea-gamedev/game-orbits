@@ -1,6 +1,6 @@
 #[cfg(feature="example")]
 mod solar_system {
-	use std::f32::consts::{PI, TAU};
+	use std::{collections::VecDeque, f32::consts::{PI, TAU}};
 	pub use bevy::prelude::*;
 	pub use game_orbits::{BevyPlanetDatabase, handles::*};
 
@@ -79,6 +79,7 @@ mod solar_system {
 		control_view_apsis: Entity,
 		control_view_axes: Entity,
 		time_display: Entity,
+		framerate_display: Entity,
 	}
 
 	/// Stores the solar system time, allowing it to be changed at runtime
@@ -112,6 +113,45 @@ mod solar_system {
 	impl Default for CameraParent {
 		fn default() -> Self {
 			Self{ yaw: 0.0, pitch: 0.0, zoom: 0.1, centered_body: 0, view_apsis: false, view_soi: true, view_axes: false, view_orbit: OrbitViewMode::All }
+		}
+	}
+
+	#[derive(Component)]
+	pub struct FramerateLabel {
+		frame_times: VecDeque<f32>,
+		max_measurements: usize,
+	}
+	impl FramerateLabel {
+		pub fn new(max_measurements: usize) -> Self {
+			Self{
+				frame_times: VecDeque::new(),
+				max_measurements,
+			}
+		}
+		pub fn add(&mut self, frame_time: f32){
+			self.frame_times.push_front(frame_time);
+			if self.frame_times.len() >= self.max_measurements {
+				self.frame_times.pop_back();
+			}
+		}
+		pub fn avg_frame_time(&self) -> f32 {
+			if self.frame_times.len() > 0 {
+				let mut total: f32 = 0.0;
+				for frame_time in self.frame_times.iter() {
+					total += frame_time;
+				}
+				return total / self.frame_times.len() as f32;
+			} else {
+				0.0
+			}
+		}
+		pub fn avg_framerate(&self) -> f32 {
+			1.0 / self.avg_frame_time()
+		}
+	}
+	impl Default for FramerateLabel {
+		fn default() -> Self {
+			Self::new(60)
 		}
 	}
 
@@ -197,16 +237,24 @@ mod solar_system {
 			.add_child(satellite_name)
 			.id();
 		// time text
+		let framerate_display = commands.spawn((
+			Text::new("framerate: 999.9 fr/s"),
+			FramerateLabel::default(),
+		)).id();
 		let time_display = commands.spawn((
-			Text::new("t: 99999.9s"),
+			Text::new("t: 99999.99s"),
+		)).id();
+		let _time_pane = commands.spawn((
 			Node {
 				position_type: PositionType::Absolute,
+				flex_direction: FlexDirection::Column,
+				justify_content: JustifyContent::End,
 				top: Val::ZERO,
 				right: Val::ZERO,
 				padding: UiRect::axes(Val::Px(5.0), Val::Px(4.0)),
 				..default()
 			},
-		)).id();
+		)).add_child(framerate_display).add_child(time_display).id();
 		// add UI resource
 		commands.insert_resource(UiElements{
 			parent_planet_name,
@@ -219,6 +267,7 @@ mod solar_system {
 			control_view_apsis,
 			control_view_axes,
 			time_display,
+			framerate_display
 		});
 	}
 
@@ -335,10 +384,21 @@ mod solar_system {
 	pub fn update_time_display(
 		mut labels: Query<&mut Text>,
 		elements: Res<UiElements>,
-		time: Res<SystemTime>
+		system_time: Res<SystemTime>,
+		time: Res<Time>,
 	) {
 		let mut time_label = labels.get_mut(elements.time_display).unwrap();
-		time_label.0 = format!("t: {:.1}", time.seconds);
+		time_label.0 = format!("t: {:.2}", system_time.seconds);
+	}
+
+	pub fn update_framerate_label(
+		mut labels: Query<(&mut Text, &mut FramerateLabel)>,
+		time: Res<Time>,
+	){
+		for (mut text, mut label) in &mut labels {
+			label.add(time.delta_secs());
+			text.0 = format!("framerate: {:.1} fr/s", label.avg_framerate());
+		}
 	}
 
 	pub fn process_camera_input(
@@ -548,6 +608,7 @@ fn main() {
 				process_navigation_controls.before(update_camera_position),
 				process_camera_input.before(update_camera_position),
 				update_camera_position,
+				update_framerate_label,
 				update_controls_ui.after(process_visibility_input),
 				update_planet_focus_ui.after(process_navigation_controls),
 				update_time_display,

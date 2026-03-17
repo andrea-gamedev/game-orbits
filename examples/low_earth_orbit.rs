@@ -214,7 +214,7 @@ mod low_earth_orbit {
 		let body = Body::new_earth();
 		let orbit = orbits.single().unwrap();
 		let mut label = text_nodes.get_mut(labels.time).unwrap();
-		label.0 = format!("t: {:.1} s", orbit.time);
+		label.0 = format!("t: {:.2} s", orbit.time);
 		label = text_nodes.get_mut(labels.semimajor_axis).unwrap();
 		label.0 = format!("a: {:.0} km", orbit.semimajor_axis * CONVERT_M_TO_KM);
 		label = text_nodes.get_mut(labels.eccentricity).unwrap();
