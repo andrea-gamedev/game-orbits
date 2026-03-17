@@ -6,8 +6,8 @@ edition = "2021"
 [dependencies]
 bevy = {version="0.18.1", optional=true, default-features=false}
 godot = {version="0.4.5", optional=true}
-nalgebra = "*"
-num-traits = "*"
+nalgebra = "0.34.1"
+num-traits = "0.2.19"
 
 [dev-dependencies]
 approx = "*"
@@ -16,7 +16,7 @@ approx = "*"
 default = []
 bevy = ["dep:bevy"]
 godot = ["dep:godot"]
-example = ["bevy", "bevy/default", "bevy/jpeg"] # 402 dependencies
+example = ["bevy", "bevy/3d", "bevy/ui", "bevy/jpeg"]
 
 [lib]
 crate-type = ["lib", "cdylib"]
