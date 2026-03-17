@@ -36,23 +36,17 @@ in order to use this for a personal project of mine in the Godot engine, but it
 should be theoretically possible to use this in any engine that allows you to
 write a wrapper library around rust code or compiled artifacts.
 
-## Examples
-
-This library includes a few examples that showcase the library's use in the Bevy game engine. For
-details on the individual examples and how to run them, see the [examples README file](./examples/README.md).
-
 ## Feature flags
-
-Feature flags are included to provide wrappers for the `PlanetDatabase` struct in either the Bevy or Godot game engines. One additional flag is available, `example`, that is used for running examples (see the [examples README for more details](./examples/README.md)). The examples run in the Bevy engine, so the `example` flag enables the bevy flag as well as the necessary features in bevy to render the examples.
 
 Flag      | Description
 ----------|------------
-`bevy`    | Adds the `BevyPlanetDatabase` struct, which can be added to the ECS as a resource, and wraps the `PlanetDatabase` struct, allowing you to add planets and query their positions through the Bevy ECS. Does not add anything from bevy except the bare minimum to make `BevyPlanetDatabase` a valid Bevy ECS resource.
-`godot`   | Adds the `GodotPlanetDatabase` struct, which can be included in a GDExtension and appears in the godot engine as a class/node that can be added to the scene tree. Wraps the `PlanetDatabase` struct, allowing you to add planets and query their positions from within the Godot engine
-`example` | Enables the `bevy` feature, as well as any features in the Bevy engine needed to run the examples for this crate. Contrasts to the `bevy` feature alone, which only adds the bare minimum from Bevy in order for `BevyPlanetDatabase` to be a valid resource to keep this library as lightweight as possible when used.
+`bevy` | Adds features for adding `PlanetDatabase` to the Bevy ECS, allowing adding planets and querying planet positions from Bevy systems. For details see [the Bevy Engine specific docs](./docs/bevy.md).
+`godot` | Adds features for adding `PlanetDatabase` to Godot games, allowing adding planets and querying planet positions from Godot scripts. For details see [the Godot Engine specific docs](./docs/godot.md).
+`example` | Enables the `bevy` feature, as well as additional features from the bevy engine that are used to render the examples. For details see [the examples README file](./examples/README.md)
+`prefab` | Adds functions for prepopulating the `PlanetDatabase` with planets and moons from our solar system
 
 ## References
 
 - [*Orbital Mechanics*](http://www.braeunig.us/space/orbmech.htm) by Robert A. Braeunig
-- [OrbiterWiki](https://www.orbiterwiki.org/wiki/Main_Page) for orbital parameters for various moons
+- [OrbiterWiki](https://www.orbiterwiki.org/wiki/Main_Page) for orbital parameters for some moons
 - [Wikipedia](https://wikipedia.org) for its helpful diagrams of various concepts and generally being a great provider of free information

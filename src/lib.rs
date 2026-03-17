@@ -16,6 +16,8 @@ pub mod constants;
 mod body; pub use body::*;
 mod database; pub use database::*;
 mod elements; pub use elements::*;
+#[cfg(any(feature="prefab", test))]
+pub mod prefab;
 #[cfg(test)]
 mod problems;
 

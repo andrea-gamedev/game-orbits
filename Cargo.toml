@@ -16,7 +16,8 @@ approx = "*"
 default = []
 bevy = ["dep:bevy"]
 godot = ["dep:godot"]
-example = ["bevy", "bevy/3d", "bevy/ui", "bevy/jpeg"]
+example = ["bevy", "prefab", "bevy/3d", "bevy/ui", "bevy/jpeg"]
+prefab = []
 
 [lib]
 crate-type = ["lib", "cdylib"]

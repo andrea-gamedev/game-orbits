@@ -16,8 +16,8 @@ impl<H> BevyPlanetDatabase<H> where H: Clone + Debug + Display + Eq + Hash + Fro
     pub fn get_satellites(&self, handle: &H) -> Vec<H> {
         self.database.get_satellites(handle)
     }
-	pub fn get_parents(&self, handle: &H) -> Vec<H> {
-		self.database.get_parents(handle)
+	pub fn get_parents(&self, handle: &H, inclusive: bool) -> Vec<H> {
+		self.database.get_parents(handle, inclusive)
 	}
 	pub fn position_at_mean_anomaly(&self, handle: &H, mean_anomaly: f32) -> Vec3 {
 		vec_nalgebra_to_bevy(self.database.position_at_mean_anomaly(handle, mean_anomaly))
@@ -30,8 +30,8 @@ impl<H> BevyPlanetDatabase<H> where H: Clone + Debug + Display + Eq + Hash + Fro
     }
 	pub fn relative_position(&self, origin: &H, relative: &H, time: f32) -> Option<Vec3> {
 		match self.database.relative_position(origin, relative, time) {
-			Some(vector) => Some(vec_nalgebra_to_bevy(vector)),
-			None => None,
+			Ok(vector) => Some(vec_nalgebra_to_bevy(vector)),
+			Err(_) => None,
 		}
 	}
     pub fn radius_soi(&self, handle: &H) -> f32 {

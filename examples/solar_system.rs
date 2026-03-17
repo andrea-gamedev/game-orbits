@@ -2,7 +2,7 @@
 mod solar_system {
 	use std::{collections::VecDeque, f32::consts::{PI, TAU}};
 	pub use bevy::prelude::*;
-	pub use game_orbits::{BevyPlanetDatabase, handles::*};
+	pub use game_orbits::{BevyPlanetDatabase, prefab::handles::*};
 
 
 	const SCALE: f32 = 1.0 / 20_000_000.0;
@@ -42,7 +42,8 @@ mod solar_system {
 	const AXIS_SIZE_MIN: f32 = 0.4;
 	const AXIS_SIZE_MAX: f32 = 20000.0;
 
-	pub type Database = BevyPlanetDatabase<usize>;
+	pub type Handle = usize;
+	pub type Database = BevyPlanetDatabase<Handle>;
 
 	#[derive(Clone, Copy, PartialEq)]
 	pub enum OrbitViewMode {
@@ -525,7 +526,7 @@ mod solar_system {
 		let origin_body = camera_parent.centered_body;
 		let step = TAU / (ORBIT_SEGMENTS-1) as f32;
 		for (handle, entry) in db.iter() {
-			let heirarchy = db.get_parents(&handle);
+			let heirarchy = db.get_parents(&handle, true);
 			if let Some(parent_handle) = entry.parent {
 				let view_all = camera_parent.view_orbit == OrbitViewMode::All;
 				let view_heirarchy = camera_parent.view_orbit == OrbitViewMode::Children && heirarchy.contains(&camera_parent.centered_body);
@@ -604,7 +605,8 @@ fn main() {
 			.add_systems(Startup, (setup_camera, setup_ui))
 			.add_systems(Update, (
 				process_visibility_input,
-				draw_orbits.after(process_visibility_input), draw_planets.after(process_visibility_input),
+				draw_orbits.after(process_visibility_input),
+				draw_planets.after(process_visibility_input),
 				process_navigation_controls.before(update_camera_position),
 				process_camera_input.before(update_camera_position),
 				update_camera_position,
