@@ -60,8 +60,8 @@ impl GodotPlanetDatabase {
 	}
 	/// Gets the heirarchy of a body's parent bodies
 	#[func]
-	pub fn get_parents(&self, handle: i64) -> Array<i64> {
-		let parents: Vec<i64> = self.database.get_parents(&handle);
+	pub fn get_parents(&self, handle: i64, inclusive: bool) -> Array<i64> {
+		let parents: Vec<i64> = self.database.get_parents(&handle, inclusive);
 		let mut output = Array::new();
 		for parent_handle in parents {
 			output.push(parent_handle);
