@@ -10,6 +10,10 @@ fn vec_nalgebra_to_godot(input: nalgebra::Vector3<f32>) -> godot::builtin::Vecto
 	godot::builtin::Vector3::new(input.x, input.y, input.z)
 }
 
+fn vec_godot_to_nalgebra(input: godot::builtin::Vector3) -> nalgebra::Vector3<f32> {
+	nalgebra::Vector3::<f32>::new(input.x, input.y, input.z)
+}
+
 
 #[derive(GodotClass)]
 #[class(base=Node)]
@@ -78,5 +82,19 @@ impl GodotPlanetDatabase {
 			output.push(handle);
 		}
 		return output;
+	}
+	/// Returns the sphere of influence the given position lies inside
+	#[func]
+	pub fn get_soi(&self, position: Vector3, origin: i64, time: f32) -> i64 {
+		match self.database.get_soi(vec_godot_to_nalgebra(position), &origin, time) {
+			Some(handle) => handle,
+			None => -1,
+		}
+	}
+	/// Checks whether or not the given `position` is within the sphere of influence of the given
+	/// `body`, relative to `origin`
+	#[func]
+	pub fn is_in_soi(&self, position: Vector3, body: i64, origin: i64, time: f32) -> bool {
+		self.database.is_in_soi(vec_godot_to_nalgebra(position), &body, &origin, time)
 	}
 }

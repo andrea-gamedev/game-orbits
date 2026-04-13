@@ -48,8 +48,25 @@ impl<H> BevyPlanetDatabase<H> where H: Clone + Debug + Display + Eq + Hash + Fro
     pub fn iter(&self) -> Iter<'_, H, DatabaseEntry<H, f32>> {
         self.database.iter()
     }
+    /// Returns which satellite of `body` the given `position` lies within the sphere of influence of.
+	/// 
+	/// Does not check if the satellite lies within the sphere of influence of `body` itself. If
+	/// the point is not in the SOI of any of its satellites, it will return `None` even if the
+	/// position is in the SOI of `body`
+    pub fn get_soi(&self, position: Vec3, origin: &H, time: f32) -> Option<H> {
+        self.database.get_soi(vec_bevy_to_nalgebra(position), origin, time)
+    }
+    /// Returns whether or not the given `position` lies within the sphere of influence of `body`,
+    /// relative to `origin`
+    pub fn is_in_soi(&self, position: Vec3, body: &H, origin: &H, time: f32) -> bool {
+        self.database.is_in_soi(vec_bevy_to_nalgebra(position), body, origin, time)
+    }
 }
 
 pub fn vec_nalgebra_to_bevy(input: Vector3<f32>) -> Vec3 {
     Vec3::new(input.x, input.y, input.z)
+}
+
+pub fn vec_bevy_to_nalgebra(input: Vec3) -> Vector3<f32> {
+    Vector3::new(input.x, input.y, input.z)
 }
