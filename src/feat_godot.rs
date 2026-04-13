@@ -27,6 +27,7 @@ impl GodotPlanetDatabase {
 	/// Initializes the database with premade data for Earth's solar
 	/// system in real life
 	#[func]
+	#[cfg(feature="prefab")]
 	pub fn add_solar_system(&mut self) {
 		self.database.add_solar_system();
 	}

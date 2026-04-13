@@ -37,6 +37,7 @@ impl<H> BevyPlanetDatabase<H> where H: Clone + Debug + Display + Eq + Hash + Fro
     pub fn radius_soi(&self, handle: &H) -> f32 {
         self.database.radius_soi(handle)
     }
+    #[cfg(feature="prefab")]
     pub fn with_solar_system(mut self) -> Self {
         self.database = self.database.with_solar_system();
         self
