@@ -151,6 +151,10 @@ impl<H, T> Database<H, T> where H: Clone + Eq + Hash + FromPrimitive, T: Clone +
 		satellites
 	}
 	/// Get the heirarchy of parent bodies of the input body
+	/// 
+	/// Bodies are returned in order, starting from the lowest body in the heirarchy to the highest.
+	/// For example, calling this function on the moon with `inclusive` set to `true` would return
+	/// `[moon, earth, sun]`
 	pub fn get_parents(&self, body: &H, inclusive: bool) -> Vec<H> where H: Debug {
 		let mut handles: Vec<H> = match inclusive {
 			true => vec![body.clone()],
@@ -162,6 +166,54 @@ impl<H, T> Database<H, T> where H: Clone + Eq + Hash + FromPrimitive, T: Clone +
 			body_entry = self.get_entry(&parent_handle);
 		}
 		return handles;
+	}
+	/// Gets the body whose sphere of influence dominates the given `position` in space, relative to the `origin` body
+	pub fn get_soi(&self, position: Vector3<T>, origin: &H, time: T) -> Option<H>
+	where H: Debug + Display + Ord, T: RealField + SimdValue + SimdRealField
+	{
+		// If in `origin` SOI, check `origin`'s satellites
+		if self.is_in_soi(position, &origin, &origin, time) {
+			match self.get_satellite_soi(position, origin, origin, time) {
+				Some(body) => return Some(body),
+				None => return Some(origin.clone()),
+			};
+		}
+		// Else check `origin`'s parent bodies
+		else {
+			for parent in self.get_parents(&origin, false).iter() {
+				if self.is_in_soi(position, parent, &origin, time) {
+					return Some(parent.clone());
+				}
+			}
+		}
+		// If no SOIs match for the satellites or parent bodies, return `None`
+		None
+	}
+	/// Returns which satellite of `body` the given `position` lies within the sphere of influence of.
+	/// 
+	/// Does not check if the satellite lies within the sphere of influence of `body` itself. If
+	/// the point is not in the SOI of any of its satellites, it will return `None` even if the
+	/// position is in the SOI of `body`
+	pub fn get_satellite_soi(&self, position: Vector3<T>, body: &H, origin: &H, time: T) -> Option<H>
+	where H: Debug + Display + Ord, T: RealField + SimdValue + SimdRealField
+	{
+		let satellites = self.get_satellites(&body);
+		for satellite in satellites.iter() {
+			if self.is_in_soi(position, satellite, &origin, time) {
+				match self.get_satellite_soi(position, satellite, origin, time) {
+					Some(body) => return Some(body),
+					None => return Some(satellite.clone()),
+				};
+			}
+		}
+		None
+	}
+	/// Returns whether or not the given `position` lies within the sphere of influence of `body`, relative to `origin`
+	pub fn is_in_soi(&self, position: Vector3<T>, body: &H, origin: &H, time: T) -> bool
+	where H: Debug + Display + Ord, T: RealField + SimdValue + SimdRealField {
+		let body_position: Vector3<T> = self.relative_position(&origin, &body, time).unwrap();
+		let test_distance: T = body_position.metric_distance(&position);
+		test_distance <= self.radius_soi(&body)
 	}
 	/// Gets the combined mass of a body and all its satellites
 	pub fn get_combined_mass_kg(&self, body: &H) -> T where H: Debug + Ord {
@@ -290,6 +342,157 @@ mod tests {
 		assert_eq!(HANDLE_DEIMOS, heirarchy[0]);
 		assert_eq!(HANDLE_MARS, heirarchy[1]);
 		assert_eq!(HANDLE_SOL, heirarchy[2]);
+	}
+
+	#[test]
+	fn is_in_soi() {
+		const SUN_HANDLE: u8 = 0;
+		const PLANET_HANDLE: u8 = 1;
+		const MOON_HANDLE: u8 = 2;
+		const TIME: f32 = 0.0;
+
+		// setup
+		let mut database: Database<u8, f32> = Database::default();
+		let sun = DatabaseEntry::new(
+			Body::default().with_mass_kg(300000000.0), // SOI ~ 200m
+			"Sun",
+		);
+		let planet = DatabaseEntry::new(
+			Body::default().with_mass_kg(6000000.0), // SOI ~ 20m distance 100
+			"Planet",
+		).with_parent(SUN_HANDLE, OrbitalElements::default().with_semimajor_axis_m(100.0));
+		let moon = DatabaseEntry::new(
+			Body::default().with_mass_kg(150000.0), // SOI ~ 2m distance 10
+			"Moon",
+		).with_parent(PLANET_HANDLE, OrbitalElements::default().with_semimajor_axis_m(10.0));
+		database.add_entry(SUN_HANDLE, sun);
+		database.add_entry(PLANET_HANDLE, planet);
+		database.add_entry(MOON_HANDLE, moon);
+		println!(
+			"SOI Radius\n\tSun: {}\n\tPlanet: {}\n\tMoon: {}",
+			database.radius_soi(&SUN_HANDLE),
+			database.radius_soi(&PLANET_HANDLE),
+			database.radius_soi(&MOON_HANDLE),
+		);
+		println!(
+			"Relative positions:\n\tPlanet: {:?}\n\tMoon: {:?}",
+			database.relative_position(&SUN_HANDLE, &PLANET_HANDLE, TIME),
+			database.relative_position(&PLANET_HANDLE, &MOON_HANDLE, TIME),
+		);
 		
+		// test
+		let test_cases: Vec<(Vector3<f32>, u8, u8, bool)> = vec![
+			// Sun relative
+			(Vector3::new(0.0, 0.0, 0.0), SUN_HANDLE, SUN_HANDLE, true),
+			(Vector3::new(0.0, 0.0, 0.0), PLANET_HANDLE, SUN_HANDLE, false),
+			(Vector3::new(0.0, 0.0, 0.0), MOON_HANDLE, SUN_HANDLE, false),
+			(Vector3::new(100.0, 0.0, 0.0), SUN_HANDLE, SUN_HANDLE, true),
+			(Vector3::new(100.0, 0.0, 0.0), PLANET_HANDLE, SUN_HANDLE, true),
+			(Vector3::new(100.0, 0.0, 0.0), MOON_HANDLE, SUN_HANDLE, false),
+			(Vector3::new(110.0, 0.0, 0.0), SUN_HANDLE, SUN_HANDLE, true),
+			(Vector3::new(110.0, 0.0, 0.0), PLANET_HANDLE, SUN_HANDLE, true),
+			(Vector3::new(110.0, 0.0, 0.0), MOON_HANDLE, SUN_HANDLE, true),
+			(Vector3::new(300.0, 0.0, 0.0), SUN_HANDLE, SUN_HANDLE, false),
+			(Vector3::new(300.0, 0.0, 0.0), PLANET_HANDLE, SUN_HANDLE, false),
+			(Vector3::new(300.0, 0.0, 0.0), MOON_HANDLE, SUN_HANDLE, false),
+			// Planet relative
+			(Vector3::new(0.0, 0.0, 0.0), SUN_HANDLE, PLANET_HANDLE, true),
+			(Vector3::new(0.0, 0.0, 0.0), PLANET_HANDLE, PLANET_HANDLE, true),
+			(Vector3::new(0.0, 0.0, 0.0), MOON_HANDLE, PLANET_HANDLE, false),
+			(Vector3::new(10.0, 0.0, 0.0), SUN_HANDLE, PLANET_HANDLE, true),
+			(Vector3::new(10.0, 0.0, 0.0), PLANET_HANDLE, PLANET_HANDLE, true),
+			(Vector3::new(10.0, 0.0, 0.0), MOON_HANDLE, PLANET_HANDLE, true),
+			(Vector3::new(-30.0, 0.0, 0.0), SUN_HANDLE, PLANET_HANDLE, true),
+			(Vector3::new(-30.0, 0.0, 0.0), PLANET_HANDLE, PLANET_HANDLE, false),
+			(Vector3::new(-30.0, 0.0, 0.0), MOON_HANDLE, PLANET_HANDLE, false),
+			(Vector3::new(200.0, 0.0, 0.0), SUN_HANDLE, PLANET_HANDLE, false),
+			(Vector3::new(200.0, 0.0, 0.0), PLANET_HANDLE, PLANET_HANDLE, false),
+			(Vector3::new(200.0, 0.0, 0.0), MOON_HANDLE, PLANET_HANDLE, false),
+			// Moon relative
+			(Vector3::new(0.0, 0.0, 0.0), SUN_HANDLE, MOON_HANDLE, true),
+			(Vector3::new(0.0, 0.0, 0.0), PLANET_HANDLE, MOON_HANDLE, true),
+			(Vector3::new(0.0, 0.0, 0.0), MOON_HANDLE, MOON_HANDLE, true),
+			(Vector3::new(3.0, 0.0, 0.0), SUN_HANDLE, MOON_HANDLE, true),
+			(Vector3::new(3.0, 0.0, 0.0), PLANET_HANDLE, MOON_HANDLE, true),
+			(Vector3::new(3.0, 0.0, 0.0), MOON_HANDLE, MOON_HANDLE, false),
+			(Vector3::new(30.0, 0.0, 0.0), SUN_HANDLE, MOON_HANDLE, true),
+			(Vector3::new(30.0, 0.0, 0.0), PLANET_HANDLE, MOON_HANDLE, false),
+			(Vector3::new(30.0, 0.0, 0.0), MOON_HANDLE, MOON_HANDLE, false),
+			(Vector3::new(200.0, 0.0, 0.0), SUN_HANDLE, MOON_HANDLE, false),
+			(Vector3::new(200.0, 0.0, 0.0), PLANET_HANDLE, MOON_HANDLE, false),
+			(Vector3::new(200.0, 0.0, 0.0), MOON_HANDLE, MOON_HANDLE, false),
+		];
+		for (position, body, origin, expected) in test_cases.iter() {
+			let result: bool = database.is_in_soi(*position, body, origin, 0.0);
+			assert_eq!(
+				*expected, result,
+				"Expected point database.is_in_soi() to return {} for body {} at position {:?} relative to {}",
+				expected, body, position, origin,
+			);
+		}
+	}
+
+	#[test]
+	fn get_soi() {
+		const SUN_HANDLE: u8 = 0;
+		const PLANET_HANDLE: u8 = 1;
+		const MOON_HANDLE: u8 = 2;
+		const TIME: f32 = 0.0;
+
+		// setup
+		let mut database: Database<u8, f32> = Database::default();
+		let sun = DatabaseEntry::new(
+			Body::default().with_mass_kg(300000000.0), // SOI ~ 200m
+			"Sun",
+		);
+		let planet = DatabaseEntry::new(
+			Body::default().with_mass_kg(6000000.0), // SOI ~ 20m distance 100
+			"Planet",
+		).with_parent(SUN_HANDLE, OrbitalElements::default().with_semimajor_axis_m(100.0));
+		let moon = DatabaseEntry::new(
+			Body::default().with_mass_kg(150000.0), // SOI ~ 2m distance 10
+			"Moon",
+		).with_parent(PLANET_HANDLE, OrbitalElements::default().with_semimajor_axis_m(10.0));
+		database.add_entry(SUN_HANDLE, sun);
+		database.add_entry(PLANET_HANDLE, planet);
+		database.add_entry(MOON_HANDLE, moon);
+		println!(
+			"SOI Radius\n\tSun: {}\n\tPlanet: {}\n\tMoon: {}",
+			database.radius_soi(&SUN_HANDLE),
+			database.radius_soi(&PLANET_HANDLE),
+			database.radius_soi(&MOON_HANDLE),
+		);
+		println!(
+			"Relative positions:\n\tPlanet: {:?}\n\tMoon: {:?}",
+			database.relative_position(&SUN_HANDLE, &PLANET_HANDLE, TIME),
+			database.relative_position(&PLANET_HANDLE, &MOON_HANDLE, TIME),
+		);
+		
+		// test
+		let test_cases: Vec<(Vector3<f32>, u8, Option<u8>)> = vec![
+			// Sun relative
+			(Vector3::new(0.0, 0.0, 0.0), SUN_HANDLE, Some(SUN_HANDLE)),
+			(Vector3::new(100.0, 0.0, 0.0), SUN_HANDLE, Some(PLANET_HANDLE)),
+			(Vector3::new(110.0, 0.0, 0.0), SUN_HANDLE, Some(MOON_HANDLE)),
+			(Vector3::new(300.0, 0.0, 0.0), SUN_HANDLE, None),
+			// planet relative
+			(Vector3::new(0.0, 0.0, 0.0), PLANET_HANDLE, Some(PLANET_HANDLE)),
+			(Vector3::new(10.0, 0.0, 0.0), PLANET_HANDLE, Some(MOON_HANDLE)),
+			(Vector3::new(30.0, 0.0, 0.0), PLANET_HANDLE, Some(SUN_HANDLE)),
+			(Vector3::new(200.0, 0.0, 0.0), PLANET_HANDLE, None),
+			// Moon relative
+			(Vector3::new(0.0, 0.0, 0.0), MOON_HANDLE, Some(MOON_HANDLE)),
+			(Vector3::new(3.0, 0.0, 0.0), MOON_HANDLE, Some(PLANET_HANDLE)),
+			(Vector3::new(30.0, 0.0, 0.0), MOON_HANDLE, Some(SUN_HANDLE)),
+			(Vector3::new(200.0, 0.0, 0.0), MOON_HANDLE, None),
+		];
+		for (position, origin, expected) in test_cases.iter() {
+			let result: Option<u8> = database.get_soi(*position, origin, TIME);
+			assert_eq!(
+				*expected, result,
+				"Expected point database.get_soi() to return {:?} at position {:?} relative to {}",
+				expected, position, origin,
+			);
+		}
 	}
 }
